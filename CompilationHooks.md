@@ -1,12 +1,14 @@
-The `compilation.hooks.buildModule` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#8922%2C10-8922%2C10) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/ContextModule.js#422%2C13-422%2C13) class. This hook is called when a module is about to be built. It allows you to run custom logic or modify the module before the build process starts.
+### `compilation.hooks.buildModule`
+
+The `compilation.hooks.buildModule` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#8922%2C10-8922%2C10) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#422%2C13-422%2C13) class. This hook is called when a module is about to be built. It allows you to run custom logic or modify the module before the build process starts.
 
 ### How to Use It
 
-To use the [buildModule](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#1404%2C16-1404%2C16) hook, you need to tap into it using the [tap](file:///Volumes/sandisk/lulu_dev/webpack/lib/NormalModule.js#257%2C8-257%2C8) method. This is typically done within a Webpack plugin.
+To use the `buildModule` hook, you need to tap into it using the `tap` method. This is typically done within a Webpack plugin.
 
 ### Example
 
-Here is an example of how to use the [buildModule](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#1404%2C16-1404%2C16) hook in a custom Webpack plugin:
+Here is an example of how to use the `buildModule` hook in a custom Webpack plugin:
 
 ```javascript
 class MyCustomPlugin {
@@ -45,27 +47,16 @@ The `buildModule` hook provides the following parameters to its callbacks:
 
 The `buildModule` hook is defined in the `Compilation` class. Here are the relevant lines from the codebase:
 
-
-```1687:1687:types.d.ts
-		buildModule: SyncHook<[Module]>;
+```javascript
+1687:1687:types.d.ts
+/** @type {SyncHook<[Module]>} */
+buildModule: new SyncHook(["module"]),
 ```
 
-
-
-```617:618:lib/Compilation.js
-			/** @type {SyncHook<[Module]>} */
-			rebuildModule: new SyncHook(["module"]),
+```javascript
+1403:1403:lib/Compilation.js
+this.hooks.buildModule.call(module);
 ```
-
-
-
-```1403:1403:lib/Compilation.js
-				this.hooks.buildModule.call(module);
-```
-
-
-This should give you a comprehensive understanding of the `compilation.hooks.buildModule` hook in Webpack.
-
 
 ### `compilation.hooks.rebuildModule`
 
@@ -179,131 +170,17 @@ _rebuildModule(module, callback) {
 }
 ```
 
-These snippets demonstrate how the `rebuildModule` hook is defined and used within the Webpack codebase, allowing you to perform custom actions when a module is about to be rebuilt.
-
-### `compilation.hooks.rebuildModule`
-
-The `compilation.hooks.rebuildModule` is a [SyncHook](#1,43-1,43) provided by the Webpack [Compilation](#62,18-62,18) class. This hook is called when a module is about to be rebuilt. It allows you to run custom logic or modify the module before the rebuild process starts.
-
-### How to Use It
-
-To use the [rebuildModule](#2296,2-2296,2) hook, you need to tap into it using the [tap](#5,125-5,125) method. This is typically done within a Webpack plugin.
-
-### Example
-
-Here is an example of how to use the [rebuildModule](#2296,2-2296,2) hook in a custom Webpack plugin:
-
-```javascript
-class MyCustomPlugin {
-  apply(compiler) {
-    compiler.hooks.compilation.tap('MyCustomPlugin', (compilation) => {
-      compilation.hooks.rebuildModule.tap('MyCustomPlugin', (module) => {
-        console.log('Rebuilding module:', module.resource);
-        // Add custom logic here
-      });
-    });
-  }
-}
-
-module.exports = MyCustomPlugin;
-```
-
-### How It Works
-
-When Webpack starts rebuilding a module, it triggers the `rebuildModule` hook. Any functions tapped into this hook will be executed with the module as an argument. This allows you to inspect or modify the module before the rebuild process continues.
-
-### What It's For
-
-The `rebuildModule` hook is useful for:
-- Logging or debugging information about modules being rebuilt.
-- Modifying module properties or adding custom metadata.
-- Implementing custom rebuild logic that needs to run before a module is rebuilt.
-
-### Parameters
-
-The `rebuildModule` hook provides the following parameters to its callbacks:
-- `module`: The module that is about to be rebuilt. This is an instance of the `Module` class.
-
-### Relevant Code
-
-The `rebuildModule` hook is defined in the `Compilation` class. Here are the relevant lines from the codebase:
-
-```javascript
-617:620:lib/Compilation.js
-/** @type {SyncHook<[Module]>} */
-rebuildModule: new SyncHook(["module"]),
-/** @type {SyncHook<[Module, WebpackError]>} */
-failedModule: new SyncHook(["module", "error"]),
-```
-
-```javascript
-2290:2342:lib/Compilation.js
-/**
- * @param {Module} module module to be rebuilt
- * @param {ModuleCallback} callback callback when module finishes rebuilding
- * @returns {void}
- */
-rebuildModule(module, callback) {
-  this.rebuildQueue.add(module, callback);
-}
-
-/**
- * @param {Module} module module to be rebuilt
- * @param {ModuleCallback} callback callback when module finishes rebuilding
- * @returns {void}
- */
-_rebuildModule(module, callback) {
-  this.hooks.rebuildModule.call(module);
-  const oldDependencies = module.dependencies.slice();
-  const oldBlocks = module.blocks.slice();
-  module.invalidateBuild();
-  this.buildQueue.invalidate(module);
-  this.buildModule(module, err => {
-    if (err) {
-      return this.hooks.finishRebuildingModule.callAsync(module, err2 => {
-        if (err2) {
-          callback(
-            makeWebpackError(err2, "Compilation.hooks.finishRebuildingModule")
-          );
-          return;
-        }
-        callback(err);
-      });
-    }
-
-    this.processDependenciesQueue.invalidate(module);
-    this.moduleGraph.unfreeze();
-    this.processModuleDependencies(module, err => {
-      if (err) return callback(err);
-      this.removeReasonsOfDependencyBlock(module, {
-        dependencies: oldDependencies,
-        blocks: oldBlocks
-      });
-      this.hooks.finishRebuildingModule.callAsync(module, err2 => {
-        if (err2) {
-          callback(
-            makeWebpackError(err2, "Compilation.hooks.finishRebuildingModule")
-          );
-          return;
-        }
-        callback(null, module);
-      });
-    });
-  });
-}
-```
-
 ### `compilation.hooks.failedModule`
 
-The `compilation.hooks.failedModule` is a [SyncHook](#3,45-3,45) provided by the Webpack [Compilation](#3,92-3,92) class. This hook is called when a module fails to build. It allows you to run custom logic or handle errors when a module build fails.
+The `compilation.hooks.failedModule` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#617%2C2-617%2C2) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#62%2C18-62%2C18) class. This hook is called when a module fails to build. It allows you to run custom logic or handle errors when a module build fails.
 
 ### How to Use It
 
-To use the [failedModule](#53,4-53,4) hook, you need to tap into it using the [tap](#7,62-7,62) method. This is typically done within a Webpack plugin.
+To use the `failedModule` hook, you need to tap into it using the `tap` method. This is typically done within a Webpack plugin.
 
 ### Example
 
-Here is an example of how to use the [failedModule](#53,4-53,4) hook in a custom Webpack plugin:
+Here is an example of how to use the `failedModule` hook in a custom Webpack plugin:
 
 ```javascript
 class MyCustomPlugin {
@@ -344,17 +221,13 @@ The `failedModule` hook is defined in the `Compilation` class. Here are the rele
 
 ```javascript
 621:622:lib/Compilation.js
+/** @type {SyncHook<[Module, WebpackError]>} */
 failedModule: new SyncHook(["module", "error"]),
-/** @type {SyncHook<[Module]>} */
-```
-
-```javascript
-1689:1689:types/Compilation.d.ts
 ```
 
 ### `compilation.hooks.succeedModule`
 
-The `compilation.hooks.succeedModule` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/lib/doc.md#166%2C22-166%2C22) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/doc.md#162%2C44-162%2C44) class. This hook is called when a module has successfully been built. It allows you to run custom logic or modify the module after the build process completes.
+The `compilation.hooks.succeedModule` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#621%2C622-621%2C622) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#62%2C18-62%2C18) class. This hook is called when a module has successfully been built. It allows you to run custom logic or modify the module after the build process completes.
 
 ### How to Use It
 
@@ -362,7 +235,9 @@ To use the `succeedModule` hook, you need to tap into it using the `tap` method.
 
 ### Example
 
-Here is an example of how to use the `succeedModule` hook in a custom Webpack plugin:
+Here is an example of how to use the `succeed
+
+Module` hook in a custom Webpack plugin:
 
 ```javascript
 class MyCustomPlugin {
@@ -381,7 +256,14 @@ module.exports = MyCustomPlugin;
 
 ### How It Works
 
-The `succeedModule` hook is triggered after a module has been successfully built. This allows you to perform actions such as logging, modifying the module, or integrating with other tools.
+When Webpack starts rebuilding a module, it triggers the `succeedModule` hook. Any functions tapped into this hook will be executed with the module as an argument. This allows you to inspect or modify the module after the build process continues.
+
+### What It's For
+
+The `succeedModule` hook is useful for:
+- Logging or debugging information about modules that have been built.
+- Modifying module properties or adding custom metadata.
+- Implementing custom build logic that needs to run after a module is built.
 
 ### Parameters
 
@@ -400,15 +282,13 @@ succeedModule: new SyncHook(["module"]),
 stillValidModule: new SyncHook(["module"]),
 ```
 
-This snippet shows the definition of the `succeedModule` hook within the `Compilation` class, allowing you to perform custom actions when a module has been successfully built.
-
 ### `compilation.hooks.stillValidModule`
 
-The `compilation.hooks.stillValidModule` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/lib/javascript/JavascriptModulesPlugin.js#9%2C28-9%2C28) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/javascript/JavascriptModulesPlugin.js#19%2C7-19%2C7) class. This hook is called when a module is still considered valid and does not need to be rebuilt. It allows you to run custom logic or perform actions when a module is deemed valid.
+The `compilation.hooks.stillValidModule` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#621%2C622-621%2C622) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#62%2C18-62%2C18) class. This hook is called when a module is still considered valid and does not need to be rebuilt. It allows you to run custom logic or perform actions when a module is deemed valid.
 
 ### How to Use It
 
-To use the `stillValidModule` hook, you need to tap into it using the [tap](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.md#76%2C46-76%2C46) method. This is typically done within a Webpack plugin.
+To use the `stillValidModule` hook, you need to tap into it using the `tap` method. This is typically done within a Webpack plugin.
 
 ### Example
 
@@ -431,7 +311,7 @@ module.exports = MyCustomPlugin;
 
 ### How It Works
 
-The `stillValidModule` hook is defined in the `Compilation` class and is called when a module is still valid. This hook allows you to perform custom actions or logic when a module does not need to be rebuilt.
+The `stillValidModule` hook is triggered when a module is still valid and does not need to be rebuilt. This allows you to perform actions such as logging, modifying the module, or integrating with other tools without the need to rebuild the module.
 
 ### What It's For
 
@@ -439,13 +319,12 @@ The `stillValidModule` hook is useful for scenarios where you need to perform ac
 
 ### Parameters
 
-The `stillValidModule` hook accepts the following parameters in its callback:
-
-- `module`: The module that is still valid.
+The `stillValidModule` hook provides the following parameters to its callbacks:
+- `module`: The module that is still valid. This is an instance of the `Module` class.
 
 ### Relevant Code
 
-The `stillValidModule` hook is defined in the `Compilation` class:
+The `stillValidModule` hook is defined in the `Compilation` class. Here are the relevant lines from the codebase:
 
 ```javascript
 625:626:lib/Compilation.js
@@ -453,24 +332,17 @@ The `stillValidModule` hook is defined in the `Compilation` class:
 stillValidModule: new SyncHook(["module"]),
 ```
 
-This snippet shows the definition of the `stillValidModule` hook within the `Compilation` class, allowing you to perform custom actions when a module is still valid and does not need to be rebuilt.
-
 ### `compilation.hooks.addEntry`
 
-#### What it is:
-`compilation.hooks.addEntry` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1688%2C16-1688%2C16) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1682%2C15-1682%2C15) class. It is triggered when an entry is added to the compilation.
+The `compilation.hooks.addEntry` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1688%2C16-1688%2C16) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1682%2C15-1682%2C15) class. It is triggered when an entry is added to the compilation.
 
-#### How to use it:
-To use this hook, you need to tap into it using the [tap](file:///Volumes/sandisk/lulu_dev/webpack/lib/EntryPlugin.js#34%2C30-34%2C30) method. This allows you to execute custom logic whenever an entry is added to the compilation.
+### How to Use It
 
-#### How it works:
-When an entry is added to the compilation, the `addEntry` hook is called with two parameters: the entry dependency and the entry options. You can use this hook to perform additional actions or modifications related to the entry being added.
+To use the `addEntry` hook, you need to tap into it using the `tap` method. This allows you to execute custom logic whenever an entry is added to the compilation.
 
-#### What it's for:
-This hook is useful for plugins or custom logic that need to interact with or modify the behavior of entries being added to the compilation. It allows you to hook into the entry addition process and execute custom code.
+### Example
 
-#### Example:
-Here is an example of how to use the `compilation.hooks.addEntry` hook in a Webpack plugin:
+Here is an example of how to use the `addEntry` hook in a Webpack plugin:
 
 ```javascript
 class MyCustomPlugin {
@@ -488,16 +360,28 @@ class MyCustomPlugin {
 module.exports = MyCustomPlugin;
 ```
 
-#### Parameters:
+### How It Works
+
+When an entry is added to the compilation, the `addEntry` hook is called with two parameters: the entry dependency and the entry options. You can use this hook to perform additional actions or modifications related to the entry being added.
+
+### What It's For
+
+This hook is useful for plugins or custom logic that need to interact with or modify the behavior of entries being added to the compilation. It allows you to hook into the entry addition process and execute custom code.
+
+### Parameters
+
+The `addEntry` hook provides the following parameters to its callbacks:
 - `entry`: The entry dependency that is being added.
 - `options`: The options associated with the entry.
 
-#### Relevant Code:
+### Relevant Code
+
+The `addEntry` hook is defined in the `Compilation` class. Here are the relevant lines from the codebase:
 
 ```javascript
 627:628:lib/Compilation.js
+/** @type {SyncHook<[Dependency, EntryOptions]>} */
 addEntry: new SyncHook(["entry", "options"]),
-/** @type {SyncHook<[Dependency, EntryOptions, Error]>} */
 ```
 
 This code defines the `addEntry` hook as a `SyncHook` that takes two parameters: `entry` and `options`. This allows you to hook into the entry addition process and perform custom actions or modifications based on the entry and its associated options.
@@ -508,7 +392,7 @@ This code defines the `addEntry` hook as a `SyncHook` that takes two parameters:
 The `failedEntry` hook in the `compilation` object is used to handle scenarios where an entry point fails to be added to the compilation. This can be useful for logging errors, performing cleanup, or triggering other actions when an entry point addition fails.
 
 #### How it works
-The `failedEntry` hook is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1688%2C16-1688%2C16) that gets called with three parameters: the entry dependency, the entry options, and the error that caused the failure. This allows you to react to the failure of adding an entry point by accessing detailed information about the failure.
+The `failedEntry` hook is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1692%2C17-1692%2C17) that gets called with three parameters: the entry dependency, the entry options, and the error that caused the failure. This allows you to react to the failure of adding an entry point by accessing detailed information about the failure.
 
 #### How to use it
 To use the `failedEntry` hook, you need to tap into it using the `tap` method. This method allows you to specify a plugin name and a callback function that will be executed when the hook is called.
@@ -535,16 +419,12 @@ The `failedEntry` hook is defined in the `Compilation` class. Here are the relev
 
 ```javascript
 1692:1694:types.d.ts
-addEntry: SyncHook<[Dependency, EntryOptions]>;
 failedEntry: SyncHook<[Dependency, EntryOptions, Error]>;
-succeedEntry: SyncHook<[Dependency, EntryOptions, Module]>;
 ```
 
 ```javascript
 629:631:lib/Compilation.js
 failedEntry: new SyncHook(["entry", "options", "error"]),
-/** @type {SyncHook<[Dependency, EntryOptions, Module]>} */
-succeedEntry: new SyncHook(["entry", "options", "module"]),
 ```
 
 This code defines the `failedEntry` hook as a `SyncHook` that takes three parameters: `entry`, `options`, and `error`. This allows you to hook into the entry addition process and perform custom actions or handle errors when an entry fails to be added.
@@ -552,10 +432,10 @@ This code defines the `failedEntry` hook as a `SyncHook` that takes three parame
 ### `compilation.hooks.succeedEntry`
 
 #### What it's for
-The `succeedEntry` hook in the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1682%2C15-1682%2C15) class is used to signal that an entry dependency has been successfully added to the compilation. This hook is useful for plugins or other parts of the webpack system that need to perform actions when an entry has been successfully processed.
+The `succeedEntry` hook in the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1694%2C17-1694%2C17) class is used to signal that an entry dependency has been successfully added to the compilation. This hook is useful for plugins or other parts of the webpack system that need to perform actions when an entry has been successfully processed.
 
 #### How it works
-The `succeedEntry` hook is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1688%2C16-1688%2C16) that gets called with three parameters:
+The `succeedEntry` hook is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1694%2C17-1694%2C17) that gets called with three parameters:
 1. `entry` - The entry dependency that was added.
 2. `options` - The options associated with the entry.
 3. `module` - The module that was created from the entry dependency.
@@ -586,14 +466,7 @@ module.exports = MyPlugin;
 The `succeedEntry` hook is defined in the `Compilation` class. Here is the relevant code snippet:
 
 ```javascript
-621:632:lib/Compilation.js
-/** @type {SyncHook<[Module]>} */
-succeedModule: new SyncHook(["module"]),
-/** @type {SyncHook<[Module]>} */
-stillValidModule: new SyncHook(["module"]),
-
-/** @type {SyncHook<[Dependency, EntryOptions]>} */
-addEntry: new SyncHook(["entry", "options"]),
+629:632:lib/Compilation.js
 /** @type {SyncHook<[Dependency, EntryOptions, Error]>} */
 failedEntry: new SyncHook(["entry", "options", "error"]),
 /** @type {SyncHook<[Dependency, EntryOptions, Module]>} */
@@ -610,7 +483,6 @@ this.hooks.succeedEntry.call(
   /** @type {Module} */ (module)
 );
 ```
-
 ### `compilation.hooks.dependencyReferencedExports`
 
 #### What it is:
@@ -914,6 +786,7 @@ const processExportInfo = (
 #### Summary:
 `compilation.hooks.dependencyReferencedExports` is a powerful hook that allows you
 
+ to interact with and modify the list of exports referenced by a dependency during the Webpack compilation process. This provides flexibility and control over how exports are managed and processed.
 
 ### `compilation.hooks.executeModule`
 
@@ -1215,6 +1088,8 @@ executeModule(module, options, callback) {
                       id,
                       exports:
 
+
+
  {},
                       loaded: false,
                       error: undefined
@@ -1297,7 +1172,7 @@ This hook is particularly useful for plugins that need to perform actions or mod
 `compilation.hooks.prepareModuleExecution` is an [AsyncParallelHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#31%2C20-31%2C20) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#5252%2C14-5252%2C14) class. It is used to perform asynchronous tasks before a module is executed, allowing custom logic to run in parallel with other tasks before the module execution begins.
 
 #### How to use it:
-To use the [prepareModuleExecution](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#32%2C9-32%2C9) hook, you need to tap into it using one of the available methods: [tap](file:///Volumes/sandisk/lulu_dev/webpack/lib/ModuleTemplate.js#76%2C5-76%2C5), [tapAsync](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C137-143%2C137), or [tapPromise](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C150-143%2C150). Here is an example of how to use it:
+To use the `prepareModuleExecution` hook, you need to tap into it using one of the available methods: [tap](file:///Volumes/sandisk/lulu_dev/webpack/lib/ModuleTemplate.js#76%2C5-76%2C5), [tapAsync](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C137-143%2C137), or [tapPromise](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C150-143%2C150). Here is an example of how to use it:
 
 #### Example:
 ```javascript
@@ -1358,7 +1233,7 @@ This hook is particularly useful for plugins that need to perform actions or mod
 `compilation.hooks.finishModules` is an [AsyncSeriesHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#33%2C20-33%2C20) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2687%2C43-2687%2C43) class. This hook is called when the compilation process has finished processing all modules. It allows you to perform asynchronous tasks after all modules have been processed but before the compilation is sealed.
 
 #### How to use it:
-To use the [finishModules](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2833%2C14-2833%2C14) hook, you need to tap into it using one of the available methods ([tap](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C129-143%2C129), [tapAsync](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C137-143%2C137), or [tapPromise](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C150-143%2C150)). Here is an example of how to use it:
+To use the `finishModules` hook, you need to tap into it using one of the available methods ([tap](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C129-143%2C129), [tapAsync](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C137-143%2C137), or [tapPromise](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C150-143%2C150)). Here is an example of how to use it:
 
 #### Example:
 ```javascript
@@ -1385,7 +1260,7 @@ The `finishModules` hook is useful for performing tasks that need to be done aft
 #### Parameters:
 - **modules**: An iterable of all the modules that have been processed in the compilation.
 
-#### Code Reference:
+#### Relevant Code:
 The `finishModules` hook is defined in the `Compilation` class:
 
 ```typescript
@@ -1413,13 +1288,13 @@ This hook is particularly useful for plugins that need to perform actions or mod
 To use this hook, you need to tap into it within a Webpack plugin. You can use the [tapAsync](file:///Volumes/sandisk/lulu_dev/webpack/test/configCases/rebuild/finishModules/webpack.config.js#16%2C35-16%2C35) method to register an asynchronous callback that will be executed when the hook is called.
 
 #### How it works:
-When a module finishes rebuilding, the [finishRebuildingModule](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2313%2C23-2313%2C23) hook is called with the module as an argument. This allows you to perform additional operations or modifications on the module after it has been rebuilt.
+When a module finishes rebuilding, the `finishRebuildingModule` hook is called with the module as an argument. This allows you to perform additional operations or modifications on the module after it has been rebuilt.
 
 #### What it's for:
 This hook is useful for plugins that need to perform actions after a module has been rebuilt. For example, you might want to log information, modify the module, or trigger other processes that depend on the module's new state.
 
 #### Example:
-Here is an example of how to use the [finishRebuildingModule](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2313%2C23-2313%2C23) hook in a Webpack plugin:
+Here is an example of how to use the `finishRebuildingModule` hook in a Webpack plugin:
 
 ```javascript
 class MyPlugin {
@@ -1462,16 +1337,16 @@ This hook is particularly useful for plugins that need to perform actions or mod
 `compilation.hooks.unseal` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#29%2C20-29%2C20) provided by the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3181%2C35-3181%2C35) class in Webpack. It is used to perform actions when the compilation is "unsealed."
 
 #### How it works:
-The [unseal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2880%2C2-2880%2C2) hook is called when the [unseal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2880%2C2-2880%2C2) method of the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3181%2C35-3181%2C35) class is invoked. This method is responsible for resetting the state of the compilation, clearing chunks, chunk groups, and other related data structures.
+The `unseal` hook is called when the [unseal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2880%2C2-2880%2C2) method of the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3181%2C35-3181%2C35) class is invoked. This method is responsible for resetting the state of the compilation, clearing chunks, chunk groups, and other related data structures.
 
 #### What it's for:
-The [unseal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2880%2C2-2880%2C2) hook is useful for plugins or internal processes that need to perform specific actions when the compilation is being reset. This can include cleaning up resources, resetting internal states, or logging information.
+The `unseal` hook is useful for plugins or internal processes that need to perform specific actions when the compilation is being reset. This can include cleaning up resources, resetting internal states, or logging information.
 
 #### How to use it:
-To use the [unseal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2880%2C2-2880%2C2) hook, you can tap into it using the [tap](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1781%2C15-1781%2C15) method provided by the [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#29%2C20-29%2C20) class. This allows you to register a callback function that will be executed when the [unseal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2880%2C2-2880%2C2) method is called.
+To use the `unseal` hook, you can tap into it using the [tap](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1781%2C15-1781%2C15) method provided by the [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#29%2C20-29%2C20) class. This allows you to register a callback function that will be executed when the `unseal` method is called.
 
 #### Example:
-Here is an example of how to use the [unseal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#2880%2C2-2880%2C2) hook in a Webpack plugin:
+Here is an example of how to use the `unseal` hook in a Webpack plugin:
 
 ```javascript
 class MyPlugin {
@@ -1496,29 +1371,28 @@ The `unseal` hook is defined and used in the `Compilation` class as follows:
 
 ```javascript
 650:652:lib/Compilation.js
-			unseal: new SyncHook([]),
-			/** @type {SyncHook<[]>} */
-			seal: new SyncHook([]),
+unseal: new SyncHook([]),
+seal: new SyncHook([]),
 ```
 
 The `unseal` method, which calls the `unseal` hook, is implemented as follows:
 
 ```javascript
 2879:2892:lib/Compilation.js
-	unseal() {
-		this.hooks.unseal.call();
-		this.chunks.clear();
-		this.chunkGroups.length = 0;
-		this.namedChunks.clear();
-		this.namedChunkGroups.clear();
-		this.entrypoints.clear();
-		this.additionalChunkAssets.length = 0;
-		this.assets = {};
-		this.assetsInfo.clear();
-		this.moduleGraph.removeAllModuleAttributes();
-		this.moduleGraph.unfreeze();
-		this.moduleMemCaches2 = undefined;
-	}
+unseal() {
+  this.hooks.unseal.call();
+  this.chunks.clear();
+  this.chunkGroups.length = 0;
+  this.namedChunks.clear();
+  this.namedChunkGroups.clear();
+  this.entrypoints.clear();
+  this.additionalChunkAssets.length = 0;
+  this.assets = {};
+  this.assetsInfo.clear();
+  this.moduleGraph.removeAllModuleAttributes();
+  this.moduleGraph.unfreeze();
+  this.moduleMemCaches2 = undefined;
+}
 ```
 
 This demonstrates how the `unseal` method resets various properties of the `Compilation` object and triggers the `unseal` hook, allowing other parts of the Webpack system or custom plugins to react to this event.
@@ -1529,16 +1403,16 @@ This demonstrates how the `unseal` method resets various properties of the `Comp
 `compilation.hooks.seal` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1777%2C22-1777%2C22) in the Webpack compilation process. It is called when the compilation is about to be sealed, which means that the compilation process is finalizing and no more modules or chunks will be added.
 
 #### How to use it:
-To use the [seal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3206%2C23-3206%2C23) hook, you can tap into it using the [tap](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1781%2C15-1781%2C15) method provided by the [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1777%2C22-1777%2C22) class. This allows you to run custom code at the point in the compilation process when the hook is called.
+To use the `seal` hook, you can tap into it using the [tap](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1781%2C15-1781%2C15) method provided by the [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1777%2C22-1777%2C22) class. This allows you to run custom code at the point in the compilation process when the hook is called.
 
 #### How it works:
-The [seal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3206%2C23-3206%2C23) hook is triggered during the [seal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3206%2C23-3206%2C23) method of the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3181%2C35-3181%2C35) class. This method is responsible for finalizing the compilation, creating chunks, optimizing modules and chunks, and generating assets.
+The `seal` hook is triggered during the `seal` method of the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3181%2C35-3181%2C35) class. This method is responsible for finalizing the compilation, creating chunks, optimizing modules and chunks, and generating assets.
 
 #### What it's for:
-The [seal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3206%2C23-3206%2C23) hook is useful for performing actions that need to occur right before the compilation is finalized. This can include custom optimizations, logging, or modifying the compilation state.
+The `seal` hook is useful for performing actions that need to occur right before the compilation is finalized. This can include custom optimizations, logging, or modifying the compilation state.
 
 #### Example:
-Here is an example of how to tap into the [seal](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3206%2C23-3206%2C23) hook:
+Here is an example of how to tap into the `seal` hook:
 
 ```javascript
 compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
@@ -1557,194 +1431,194 @@ The `seal` hook is defined and used in the `Compilation` class. Here are the rel
 
 ```javascript
 652:654:lib/Compilation.js
-			seal: new SyncHook([]),
-
-			/** @type {SyncHook<[]>} */
+seal: new SyncHook([]),
 ```
 
 The `seal` method where the hook is called:
 
 ```javascript
 2898:3238:lib/Compilation.js
-	 */
-	seal(callback) {
-		const finalCallback = err => {
-			this.factorizeQueue.clear();
-			this.buildQueue.clear();
-			this.rebuildQueue.clear();
-			this.processDependenciesQueue.clear();
-			this.addModuleQueue.clear();
-			return callback(err);
-		};
-		const chunkGraph = new ChunkGraph(
-			this.moduleGraph,
-			this.outputOptions.hashFunction
-		);
-		this.chunkGraph = chunkGraph;
+seal(callback) {
+  const finalCallback = err => {
+    this.factorizeQueue.clear();
+    this.buildQueue.clear();
+    this.rebuildQueue.clear();
+    this.processDependenciesQueue.clear();
+    this.addModuleQueue.clear();
+    return callback(err);
+  };
+  const chunkGraph = new ChunkGraph(
+    this.moduleGraph,
+    this.outputOptions.hashFunction
+  );
+  this.chunkGraph = chunkGraph;
 
-		if (this._backCompat) {
-			for (const module of this.modules) {
-				ChunkGraph.setChunkGraphForModule(module, chunkGraph);
-			}
-		}
+  if (this._backCompat) {
+    for (const module of this.modules) {
+      ChunkGraph.setChunkGraphForModule(module, chunkGraph);
+    }
+  }
 
-		this.hooks.seal.call();
+  this.hooks.seal.call();
 
-		this.logger.time("optimize dependencies");
-		while (this.hooks.optimizeDependencies.call(this.modules)) {
-			/* empty */
-		}
-		this.hooks.afterOptimizeDependencies.call(this.modules);
-		this.logger.timeEnd("optimize dependencies");
+  this.logger.time("optimize dependencies");
+  while (this.hooks.optimizeDependencies.call(this.modules)) {
+    /* empty */
+  }
+  this.hooks.afterOptimizeDependencies.call(this.modules);
+  this.logger.timeEnd("optimize dependencies");
 
-		this.logger.time("create chunks");
-		this.hooks.beforeChunks.call();
-		this.moduleGraph.freeze("seal");
-		/** @type {Map<Entrypoint, Module[]>} */
-		const chunkGraphInit = new Map();
-		for (const [name, { dependencies, includeDependencies, options }] of this
-			.entries) {
-			const chunk = this.addChunk(name);
-			if (options.filename) {
-				chunk.filenameTemplate = options.filename;
-			}
-			const entrypoint = new Entrypoint(options);
-			if (!options.dependOn && !options.runtime) {
-				entrypoint.setRuntimeChunk(chunk);
-			}
-			entrypoint.setEntrypointChunk(chunk);
-			this.namedChunkGroups.set(name, entrypoint);
-			this.entrypoints.set(name, entrypoint);
-			this.chunkGroups.push(entrypoint);
-			connectChunkGroupAndChunk(entrypoint, chunk);
+  this.logger.time("create chunks");
+  this.hooks.beforeChunks.call();
+  this.moduleGraph.freeze("seal");
+  /** @type {Map<Entrypoint, Module[]>} */
+  const chunkGraphInit = new Map();
+  for (const [name, { dependencies, includeDependencies
 
-			const entryModules = new Set();
-			for (const dep of [...this.globalEntry.dependencies, ...dependencies]) {
-				entrypoint.addOrigin(null, { name }, /** @type {any} */ (dep).request);
+, options }] of this
+    .entries) {
+    const chunk = this.addChunk(name);
+    if (options.filename) {
+      chunk.filenameTemplate = options.filename;
+    }
+    const entrypoint = new Entrypoint(options);
+    if (!options.dependOn && !options.runtime) {
+      entrypoint.setRuntimeChunk(chunk);
+    }
+    entrypoint.setEntrypointChunk(chunk);
+    this.namedChunkGroups.set(name, entrypoint);
+    this.entrypoints.set(name, entrypoint);
+    this.chunkGroups.push(entrypoint);
+    connectChunkGroupAndChunk(entrypoint, chunk);
 
-				const module = this.moduleGraph.getModule(dep);
-				if (module) {
-					chunkGraph.connectChunkAndEntryModule(chunk, module, entrypoint);
-					entryModules.add(module);
-					const modulesList = chunkGraphInit.get(entrypoint);
-					if (modulesList === undefined) {
-						chunkGraphInit.set(entrypoint, [module]);
-					} else {
-						modulesList.push(module);
-					}
-				}
-			}
+    const entryModules = new Set();
+    for (const dep of [...this.globalEntry.dependencies, ...dependencies]) {
+      entrypoint.addOrigin(null, { name }, /** @type {any} */ (dep).request);
 
-			this.assignDepths(entryModules);
+      const module = this.moduleGraph.getModule(dep);
+      if (module) {
+        chunkGraph.connectChunkAndEntryModule(chunk, module, entrypoint);
+        entryModules.add(module);
+        const modulesList = chunkGraphInit.get(entrypoint);
+        if (modulesList === undefined) {
+          chunkGraphInit.set(entrypoint, [module]);
+        } else {
+          modulesList.push(module);
+        }
+      }
+    }
 
-			const mapAndSort = deps =>
-				deps
-					.map(dep => this.moduleGraph.getModule(dep))
-					.filter(Boolean)
-					.sort(compareModulesByIdentifier);
-			const includedModules = [
-				...mapAndSort(this.globalEntry.includeDependencies),
-				...mapAndSort(includeDependencies)
-			];
+    this.assignDepths(entryModules);
 
-			let modulesList = chunkGraphInit.get(entrypoint);
-			if (modulesList === undefined) {
-				chunkGraphInit.set(entrypoint, (modulesList = []));
-			}
-			for (const module of includedModules) {
-				this.assignDepth(module);
-				modulesList.push(module);
-			}
-		}
-		const runtimeChunks = new Set();
-		outer: for (const [
-			name,
-			{
-				options: { dependOn, runtime }
-			}
-		] of this.entries) {
-			if (dependOn && runtime) {
-				const err =
-					new WebpackError(`Entrypoint '${name}' has 'dependOn' and 'runtime' specified. This is not valid.
+    const mapAndSort = deps =>
+      deps
+        .map(dep => this.moduleGraph.getModule(dep))
+        .filter(Boolean)
+        .sort(compareModulesByIdentifier);
+    const includedModules = [
+      ...mapAndSort(this.globalEntry.includeDependencies),
+      ...mapAndSort(includeDependencies)
+    ];
+
+    let modulesList = chunkGraphInit.get(entrypoint);
+    if (modulesList === undefined) {
+      chunkGraphInit.set(entrypoint, (modulesList = []));
+    }
+    for (const module of includedModules) {
+      this.assignDepth(module);
+      modulesList.push(module);
+    }
+  }
+  const runtimeChunks = new Set();
+  outer: for (const [
+    name,
+    {
+      options: { dependOn, runtime }
+    }
+  ] of this.entries) {
+    if (dependOn && runtime) {
+      const err =
+        new WebpackError(`Entrypoint '${name}' has 'dependOn' and 'runtime' specified. This is not valid.
 Entrypoints that depend on other entrypoints do not have their own runtime.
 They will use the runtime(s) from referenced entrypoints instead.
 Remove the 'runtime' option from the entrypoint.`);
-				const entry = /** @type {Entrypoint} */ (this.entrypoints.get(name));
-				err.chunk = entry.getEntrypointChunk();
-				this.errors.push(err);
-			}
-			if (dependOn) {
-				const entry = /** @type {Entrypoint} */ (this.entrypoints.get(name));
-				const referencedChunks = entry
-					.getEntrypointChunk()
-					.getAllReferencedChunks();
-				const dependOnEntries = [];
-				for (const dep of dependOn) {
-					const dependency = this.entrypoints.get(dep);
-					if (!dependency) {
-						throw new Error(
-							`Entry ${name} depends on ${dep}, but this entry was not found`
-						);
-					}
-					if (referencedChunks.has(dependency.getEntrypointChunk())) {
-						const err = new WebpackError(
-							`Entrypoints '${name}' and '${dep}' use 'dependOn' to depend on each other in a circular way.`
-						);
-						const entryChunk = entry.getEntrypointChunk();
-						err.chunk = entryChunk;
-						this.errors.push(err);
-						entry.setRuntimeChunk(entryChunk);
-						continue outer;
-					}
-					dependOnEntries.push(dependency);
-				}
-				for (const dependency of dependOnEntries) {
-					connectChunkGroupParentAndChild(dependency, entry);
-				}
-			} else if (runtime) {
-				const entry = /** @type {Entrypoint} */ (this.entrypoints.get(name));
-				let chunk = this.namedChunks.get(runtime);
-				if (chunk) {
-					if (!runtimeChunks.has(chunk)) {
-						const err =
-							new WebpackError(`Entrypoint '${name}' has a 'runtime' option which points to another entrypoint named '${runtime}'.
+      const entry = /** @type {Entrypoint} */ (this.entrypoints.get(name));
+      err.chunk = entry.getEntrypointChunk();
+      this.errors.push(err);
+    }
+    if (dependOn) {
+      const entry = /** @type {Entrypoint} */ (this.entrypoints.get(name));
+      const referencedChunks = entry
+        .getEntrypointChunk()
+        .getAllReferencedChunks();
+      const dependOnEntries = [];
+      for (const dep of dependOn) {
+        const dependency = this.entrypoints.get(dep);
+        if (!dependency) {
+          throw new Error(
+            `Entry ${name} depends on ${dep}, but this entry was not found`
+          );
+        }
+        if (referencedChunks.has(dependency.getEntrypointChunk())) {
+          const err = new WebpackError(
+            `Entrypoints '${name}' and '${dep}' use 'dependOn' to depend on each other in a circular way.`
+          );
+          const entryChunk = entry.getEntrypointChunk();
+          err.chunk = entryChunk;
+          this.errors.push(err);
+          entry.setRuntimeChunk(entryChunk);
+          continue outer;
+        }
+        dependOnEntries.push(dependency);
+      }
+      for (const dependency of dependOnEntries) {
+        connectChunkGroupParentAndChild(dependency, entry);
+      }
+    } else if (runtime) {
+      const entry = /** @type {Entrypoint} */ (this.entrypoints.get(name));
+      let chunk = this.namedChunks.get(runtime);
+      if (chunk) {
+        if (!runtimeChunks.has(chunk)) {
+          const err =
+            new WebpackError(`Entrypoint '${name}' has a 'runtime' option which points to another entrypoint named '${runtime}'.
 It's not valid to use other entrypoints as runtime chunk.
 Did you mean to use 'dependOn: ${JSON.stringify(
-								runtime
-							)}' instead to allow using entrypoint '${name}' within the runtime of entrypoint '${runtime}'? For this '${runtime}' must always be loaded when '${name}' is used.
+              runtime
+            )} instead to allow using entrypoint '${name}' within the runtime of entrypoint '${runtime}'? For this '${runtime}' must always be loaded when '${name}' is used.
 Or do you want to use the entrypoints '${name}' and '${runtime}' independently on the same page with a shared runtime? In this case give them both the same value for the 'runtime' option. It must be a name not already used by an entrypoint.`);
-						const entryChunk =
-							/** @type {Chunk} */
-							(entry.getEntrypointChunk());
-						err.chunk = entryChunk;
-						this.errors.push(err);
-						entry.setRuntimeChunk(entryChunk);
-						continue;
-					}
-				} else {
-					chunk = this.addChunk(runtime);
-					chunk.preventIntegration = true;
-					runtimeChunks.add(chunk);
-				}
-				entry.unshiftChunk(chunk);
-				chunk.addGroup(entry);
-				entry.setRuntimeChunk(chunk);
-			}
-		}
-
+          const entryChunk =
+            /** @type {Chunk} */
+            (entry.getEntrypointChunk());
+          err.chunk = entryChunk;
+          this.errors.push(err);
+          entry.setRuntimeChunk(entryChunk);
+          continue;
+        }
+      } else {
+        chunk = this.addChunk(runtime);
+        chunk.preventIntegration = true;
+        runtimeChunks.add(chunk);
+      }
+      entry.unshiftChunk(chunk);
+      chunk.addGroup(entry);
+      entry.setRuntimeChunk(chunk);
+    }
+  }
+}
+```
 
 ### `compilation.hooks.beforeChunks`
 
-#### What it's for
+#### What it's for:
 The `beforeChunks` hook in the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/ChunkTemplate.js#102%2C51-102%2C51) class is used to perform actions right before the chunks are created during the compilation process. This hook allows developers to inspect, analyze, or modify the state of the compilation before the chunk creation phase begins.
 
-#### How it works
+#### How it works:
 The `beforeChunks` hook is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1777%2C22-1777%2C22) that gets called with no arguments. It is part of the Webpack compilation lifecycle and is triggered during the chunk creation phase.
 
-#### How to use it
+#### How to use it:
 To use the `beforeChunks` hook, you need to tap into it using the [tap](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1781%2C15-1781%2C15) method. This allows you to run custom code at the specific point in the compilation process when this hook is called.
 
-#### Example
+#### Example:
 Here is an example of how to use the `beforeChunks` hook in a Webpack plugin:
 
 ```javascript
@@ -1762,21 +1636,18 @@ class MyCustomPlugin {
 module.exports = MyCustomPlugin;
 ```
 
-#### Parameters the hook accepts or provides in their callbacks
+#### Parameters the hook accepts or provides in their callbacks:
 The `beforeChunks` hook does not accept any parameters or provide any in its callbacks. It is simply called to signal that the chunk creation phase is about to begin.
 
-#### Relevant Code
+#### Relevant Code:
 The `beforeChunks` hook is defined in the `Compilation` class. Here is the relevant code snippet from the `lib/Compilation.js` file:
 
 ```javascript
 656:657:lib/Compilation.js
-			beforeChunks: new SyncHook([]),
-			/**
+beforeChunks: new SyncHook([]),
 ```
 
 This hook is part of the `hooks` object in the `Compilation` class, which contains various hooks for different stages of the compilation process.
-
-
 
 ### `compilation.hooks.afterChunks`
 
@@ -1839,8 +1710,6 @@ The `afterChunks` hook is defined in the `Compilation` class. Here are the relev
  * @type {SyncHook<[Iterable<Chunk>]>}
  */
 afterChunks: new SyncHook(["chunks"]),
-
-/** @type {SyncBailHook<[Iterable<Module>]>} */
 ```
 
 ### `compilation.hooks.optimizeDependencies`
@@ -2156,19 +2025,19 @@ In this example, the plugin removes any module whose identifier includes the str
 
 ### `compilation.hooks.afterOptimizeModules`
 
-#### What it is:
+#### What it is
 `compilation.hooks.afterOptimizeModules` is a hook provided by Webpack's [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/optimize/ModuleConcatenationPlugin.js#23%2C26-23%2C26) class. It is a part of the optimization phase in the Webpack build process.
 
-#### How to use it:
+#### How to use it
 You can tap into this hook to perform custom operations after Webpack has optimized the modules. This is useful for plugins that need to perform actions once the module optimization is complete.
 
-#### How it works:
+#### How it works
 This hook is a synchronous hook ([SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1715%2C30-1715%2C30)) that gets called with an iterable of modules. It allows you to run custom logic after the modules have been optimized but before the next phase of the compilation process.
 
-#### What it's for:
+#### What it's for
 This hook is typically used by plugin authors to implement custom optimizations or transformations on the modules after Webpack's built-in optimizations have been applied.
 
-#### Example:
+#### Example
 Here is an example of how you might use `compilation.hooks.afterOptimizeModules` in a custom Webpack plugin:
 
 ```javascript
@@ -2188,7 +2057,7 @@ class MyCustomPlugin {
 module.exports = MyCustomPlugin;
 ```
 
-#### Parameters:
+#### Parameters
 - `modules`: An iterable of the modules that have been optimized.
 
 #### Relevant Code:
@@ -2327,7 +2196,9 @@ Here are some examples of plugins that use the `optimizeChunks` hook:
    ```javascript
    class RemoveEmptyChunksPlugin {
      apply(compiler) {
-       compiler.hooks.compilation.tap("RemoveEmptyChunksPlugin", (compilation) => {
+       compiler.hooks.compilation.tap("RemoveEmptyChunksPlugin", (compilation)
+
+ => {
          const handler = (chunks) => {
            const chunkGraph = compilation.chunkGraph;
            for (const chunk of chunks) {
@@ -2783,6 +2654,8 @@ Or do you want to use the entrypoints '${name}' and '${runtime}' independently o
   }
 
 
+
+
   this.hooks.afterOptimizeModules.call(this.modules);
 
   while (this.hooks.optimizeChunks.call(this.chunks, this.chunkGroups)) {
@@ -3090,11 +2963,8 @@ The `afterOptimizeChunkModules` hook is defined in the `Compilation` class. Here
 
 ```javascript
 690:691:lib/Compilation.js
-			afterOptimizeChunkModules: new SyncHook(["chunks", "modules"]),
-			/** @type {SyncBailHook<[], boolean | undefined>} */
+afterOptimizeChunkModules: new SyncHook(["chunks", "modules"]),
 ```
-
-This snippet shows the definition of the `afterOptimizeChunkModules` hook within the `Compilation` class.
 
 ### `compilation.hooks.shouldRecord`
 
@@ -3124,6 +2994,8 @@ class MyPlugin {
     });
   }
 }
+
+module.exports = MyPlugin;
 ```
 
 #### Example:
@@ -3166,26 +3038,24 @@ This hook is useful for plugins that need to conditionally enable or disable the
 		});
 ```
 
-This snippet shows how the `shouldRecord` hook is tapped into within the `RecordIdsPlugin` to always enable recording.
-
 ### `compilation.hooks.additionalChunkRuntimeRequirements`
 
 #### What it is:
-`compilation.hooks.additionalChunkRuntimeRequirements` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#74%2C20-74%2C20) provided by Webpack's [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/esm/ModuleChunkLoadingRuntimeModule.js#8%2C7-8%2C7) class. This hook allows you to add additional runtime requirements to a chunk during the compilation process.
+`compilation.hooks.additionalChunkRuntimeRequirements` is a [SyncHook](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L74) provided by Webpack's [Compilation](https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L690) class. This hook allows you to add additional runtime requirements to a chunk during the compilation process.
 
 #### How to use it:
 You can tap into this hook to add custom runtime requirements for chunks. This is useful when you need to ensure that certain runtime features or modules are included in the final output for specific chunks.
 
 #### How it works:
 The hook is called with three parameters:
-1. [chunk](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3519%2C49-3519%2C49): The chunk for which runtime requirements are being processed.
-2. [runtimeRequirements](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3560%2C12-3560%2C12): A [Set](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#74%2C37-74%2C37) of runtime requirements that can be modified.
-3. [context](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3575%2C60-3575%2C60): An object containing the [chunkGraph](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3540%2C8-3540%2C8) and [codeGenerationResults](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3561%2C7-3561%2C7).
+1. **chunk**: The chunk for which runtime requirements are being processed.
+2. **runtimeRequirements**: A `Set` of runtime requirements that can be modified.
+3. **context**: An object containing the `chunkGraph` and `codeGenerationResults`.
 
-You can add your custom runtime requirements to the [runtimeRequirements](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3560%2C12-3560%2C12) set within the hook.
+You can add your custom runtime requirements to the `runtimeRequirements` set within the hook.
 
 #### Example:
-Here is an example of how to use the [additionalChunkRuntimeRequirements](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#75%2C9-75%2C9) hook to add a custom runtime requirement:
+Here is an example of how to use the `additionalChunkRuntimeRequirements` hook to add a custom runtime requirement:
 
 ```javascript
 class MyPlugin {
@@ -3218,43 +3088,42 @@ module.exports = MyPlugin;
 
 ```typescript
 73:74:types/Compilation.d.ts
-        /** @type {SyncHook<[Chunk, Set<string>, RuntimeRequirementsContext]>} */
-        additionalChunkRuntimeRequirements: SyncHook<[Chunk, Set<string>, RuntimeRequirementsContext]>;
+/** @type {SyncHook<[Chunk, Set<string>, RuntimeRequirementsContext]>} */
+additionalChunkRuntimeRequirements: SyncHook<[Chunk, Set<string>, RuntimeRequirementsContext]>;
 ```
 
 - Hook usage:
 
 ```javascript
 695:700:lib/Compilation.js
-			additionalChunkRuntimeRequirements: new SyncHook([
-				"chunk",
-				"runtimeRequirements",
-				"context"
-			]),
-			/** @type {HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], void>>} */
+additionalChunkRuntimeRequirements: new SyncHook([
+  "chunk",
+  "runtimeRequirements",
+  "context"
+]),
 ```
 
 - Hook call in the compilation process:
 
 ```javascript
 3608:3624:lib/Compilation.js
-		this.logger.time("runtime requirements.chunks");
-		for (const chunk of chunks) {
-			const set = new Set();
-			for (const module of chunkGraph.getChunkModulesIterable(chunk)) {
-				const runtimeRequirements = chunkGraph.getModuleRuntimeRequirements(
-					module,
-					chunk.runtime
-				);
-				for (const r of runtimeRequirements) set.add(r);
-			}
-			this.hooks.additionalChunkRuntimeRequirements.call(chunk, set, context);
+this.logger.time("runtime requirements.chunks");
+for (const chunk of chunks) {
+  const set = new Set();
+  for (const module of chunkGraph.getChunkModulesIterable(chunk)) {
+    const runtimeRequirements = chunkGraph.getModuleRuntimeRequirements(
+      module,
+      chunk.runtime
+    );
+    for (const r of runtimeRequirements) set.add(r);
+  }
+  this.hooks.additionalChunkRuntimeRequirements.call(chunk, set, context);
 
-			for (const r of set) {
-				this.hooks.runtimeRequirementInChunk.for(r).call(chunk, set, context);
-			}
+  for (const r of set) {
+    this.hooks.runtimeRequirementInChunk.for(r).call(chunk, set, context);
+  }
 
-			chunkGraph.addChunkRuntimeRequirements(chunk, set);
+  chunkGraph.addChunkRuntimeRequirements(chunk, set);
 ```
 
 This hook is particularly useful for extending Webpack's runtime behavior for specific chunks, ensuring that all necessary runtime features are included.
@@ -3262,10 +3131,10 @@ This hook is particularly useful for extending Webpack's runtime behavior for sp
 ### `compilation.hooks.runtimeRequirementInChunk`
 
 #### What it is:
-`compilation.hooks.runtimeRequirementInChunk` is a [HookMap](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C20-76%2C20) of [SyncBailHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C28-76%2C28) hooks in the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/runtime/EnsureChunkRuntimeModule.js#11%2C26-11%2C26) class. This hook is used to handle runtime requirements for chunks during the compilation process in Webpack.
+`compilation.hooks.runtimeRequirementInChunk` is a [HookMap](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L76) of [SyncBailHook](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L76) hooks in the Webpack [Compilation](https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L701) class. This hook is used to handle runtime requirements for chunks during the compilation process in Webpack.
 
 #### How it works:
-The `runtimeRequirementInChunk` hook is invoked during the [processRuntimeRequirements](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3526%2C2-3526%2C2) method of the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/runtime/EnsureChunkRuntimeModule.js#11%2C26-11%2C26) class. It iterates over the chunks and their modules, collects runtime requirements, and then calls the appropriate hooks for each runtime requirement.
+The `runtimeRequirementInChunk` hook is invoked during the [processRuntimeRequirements](https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L3526) method of the [Compilation](https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L701) class. It iterates over the chunks and their modules, collects runtime requirements, and then calls the appropriate hooks for each runtime requirement.
 
 #### How to use it:
 To use `runtimeRequirementInChunk`, you need to tap into the hook for a specific runtime requirement. This allows you to add custom behavior or modify the existing behavior for that runtime requirement in chunks.
@@ -3300,27 +3169,26 @@ The `runtimeRequirementInChunk` hook is defined and used in the following lines:
 
 ```typescript
 75:76:types/Compilation.d.ts
-        /** @type {HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], void>>} */
-        runtimeRequirementInChunk: HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], void>>;
+/** @type {HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], void>>} */
+runtimeRequirementInChunk: HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], void>>;
 ```
 
 - Hook instantiation:
 
 ```javascript
 701:704:lib/Compilation.js
-			runtimeRequirementInChunk: new HookMap(
-				() => new SyncBailHook(["chunk", "runtimeRequirements", "context"])
-			),
-			/** @type {SyncHook<[Module, Set<string>, RuntimeRequirementsContext]>} */
+runtimeRequirementInChunk: new HookMap(
+  () => new SyncBailHook(["chunk", "runtimeRequirements", "context"])
+),
 ```
 
 - Hook call in the compilation process:
 
 ```javascript
 3620:3622:lib/Compilation.js
-			for (const r of set) {
-				this.hooks.runtimeRequirementInChunk.for(r).call(chunk, set, context);
-			}
+for (const r of set) {
+  this.hooks.runtimeRequirementInChunk.for(r).call(chunk, set, context);
+}
 ```
 
 This hook is particularly useful for extending Webpack's runtime behavior for specific chunks, ensuring that all necessary runtime features are included.
@@ -3328,13 +3196,13 @@ This hook is particularly useful for extending Webpack's runtime behavior for sp
 ### `compilation.hooks.additionalModuleRuntimeRequirements`
 
 #### What it is:
-`compilation.hooks.additionalModuleRuntimeRequirements` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#74%2C20-74%2C20) provided by Webpack's [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/esm/ModuleChunkLoadingRuntimeModule.js#8%2C7-8%2C7) class. This hook allows you to add additional runtime requirements to a module during the compilation process.
+`compilation.hooks.additionalModuleRuntimeRequirements` is a [SyncHook](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L74) provided by Webpack's [Compilation](https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L705) class. This hook allows you to add additional runtime requirements to a module during the compilation process.
 
 #### How it works:
-The `additionalModuleRuntimeRequirements` hook is invoked during the [processRuntimeRequirements](file:///Volumes/sandisk/lulu_dev/webpack/lib/Compilation.js#3526%2C2-3526%2C2) method of the [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/lib/esm/ModuleChunkLoadingRuntimeModule.js#8%2C7-8%2C7) class. It allows plugins to add or modify the runtime requirements of a module. The runtime requirements are essential for determining what runtime code needs to be included for a module to function correctly.
+The `additionalModuleRuntimeRequirements` hook is invoked during the [processRuntimeRequirements](https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L3526) method of the [Compilation](https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L705) class. It allows plugins to add or modify the runtime requirements of a module. The runtime requirements are essential for determining what runtime code needs to be included for a module to function correctly.
 
 #### How to use it:
-To use the `additionalModuleRuntimeRequirements` hook, you need to tap into it using one of the tap methods ([tap](file:///Volumes/sandisk/lulu_dev/webpack/lib/ModuleTemplate.js#36%2C5-36%2C5), [tapAsync](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C137-143%2C137), or [tapPromise](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#143%2C150-143%2C150)). This hook is called with three parameters: the module, a set of runtime requirements, and the context.
+To use the `additionalModuleRuntimeRequirements` hook, you need to tap into it using one of the tap methods ([tap](https://github.com/webpack/webpack/blob/main/lib/ModuleTemplate.js#L36), [tapAsync](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L143), or [tapPromise](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L143)). This hook is called with three parameters: the module, a set of runtime requirements, and the context.
 
 #### What it's for:
 This hook is primarily used by plugins that need to ensure specific runtime requirements are added to modules. For example, a plugin might need to ensure that certain global variables or functions are available at runtime for a module to execute correctly.
@@ -3364,110 +3232,112 @@ The `additionalModuleRuntimeRequirements` hook is defined in the `Compilation` c
 
 ```typescript
 705:710:lib/Compilation.js
-			additionalModuleRuntimeRequirements: new SyncHook([
-				"module",
-				"runtimeRequirements",
-				"context"
-			]),
-			/** @type {HookMap<SyncBailHook<[Module, Set<string>, RuntimeRequirementsContext]>>} */
+additionalModuleRuntimeRequirements: new SyncHook([
+  "module",
+  "runtimeRequirements",
+  "context"
+]),
 ```
 
 - Hook usage in the `processRuntimeRequirements` method:
 
 ```javascript
 3526:3605:lib/Compilation.js
-	processRuntimeRequirements({
-		chunkGraph = this.chunkGraph,
-		modules = this.modules,
-		chunks = this.chunks,
-		codeGenerationResults = this.codeGenerationResults,
-		chunkGraphEntries = this._getChunkGraphEntries()
-	} = {}) {
-		const context = { chunkGraph, codeGenerationResults };
-		const { moduleMemCaches2 } = this;
-		this.logger.time("runtime requirements.modules");
-		const additionalModuleRuntimeRequirements =
-			this.hooks.additionalModuleRuntimeRequirements;
-		const runtimeRequirementInModule = this.hooks.runtimeRequirementInModule;
-		for (const module of modules) {
-			if (chunkGraph.getNumberOfModuleChunks(module) > 0) {
-				const memCache = moduleMemCaches2 && moduleMemCaches2.get(module);
-				for (const runtime of chunkGraph.getModuleRuntimes(module)) {
-					if (memCache) {
-						const cached = memCache.get(
-							`moduleRuntimeRequirements-${getRuntimeKey(runtime)}`
-						);
-						if (cached !== undefined) {
-							if (cached !== null) {
-								chunkGraph.addModuleRuntimeRequirements(
-									module,
-									runtime,
-									cached,
-									false
-								);
-							}
-							continue;
-						}
-					}
-					let set;
-					const runtimeRequirements =
-						codeGenerationResults.getRuntimeRequirements(module, runtime);
-					if (runtimeRequirements && runtimeRequirements.size > 0) {
-						set = new Set(runtimeRequirements);
-					} else if (additionalModuleRuntimeRequirements.isUsed()) {
-						set = new Set();
-					} else {
-						if (memCache) {
-							memCache.set(
-								`moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
-								null
-							);
-						}
-						continue;
-					}
-					additionalModuleRuntimeRequirements.call(module, set, context);
+processRuntimeRequirements({
+  chunkGraph = this.chunkGraph,
+  modules = this.modules,
+  chunks = this.chunks,
+  codeGenerationResults = this.codeGenerationResults,
+  chunkGraphEntries = this._getChunkGraphEntries()
+} = {}) {
+  const context = { chunkGraph, codeGenerationResults };
+  const {
 
-					for (const r of set) {
-						const hook = runtimeRequirementInModule.get(r);
-						if (hook !== undefined) hook.call(module, set, context);
-					}
-					if (set.size === 0) {
-						if (memCache) {
-							memCache.set(
-								`moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
-								null
-							);
-						}
-					} else {
-						if (memCache) {
-							memCache.set(
-								`moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
-								set
-							);
-							chunkGraph.addModuleRuntimeRequirements(
-								module,
-								runtime,
-								set,
-								false
-							);
-						} else {
-							chunkGraph.addModuleRuntimeRequirements(module, runtime, set);
-						}
-					}
-				}
-			}
+ moduleMemCaches2 } = this;
+  this.logger.time("runtime requirements.modules");
+  const additionalModuleRuntimeRequirements =
+    this.hooks.additionalModuleRuntimeRequirements;
+  const runtimeRequirementInModule = this.hooks.runtimeRequirementInModule;
+  for (const module of modules) {
+    if (chunkGraph.getNumberOfModuleChunks(module) > 0) {
+      const memCache = moduleMemCaches2 && moduleMemCaches2.get(module);
+      for (const runtime of chunkGraph.getModuleRuntimes(module)) {
+        if (memCache) {
+          const cached = memCache.get(
+            `moduleRuntimeRequirements-${getRuntimeKey(runtime)}`
+          );
+          if (cached !== undefined) {
+            if (cached !== null) {
+              chunkGraph.addModuleRuntimeRequirements(
+                module,
+                runtime,
+                cached,
+                false
+              );
+            }
+            continue;
+          }
+        }
+        let set;
+        const runtimeRequirements =
+          codeGenerationResults.getRuntimeRequirements(module, runtime);
+        if (runtimeRequirements && runtimeRequirements.size > 0) {
+          set = new Set(runtimeRequirements);
+        } else if (additionalModuleRuntimeRequirements.isUsed()) {
+          set = new Set();
+        } else {
+          if (memCache) {
+            memCache.set(
+              `moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
+              null
+            );
+          }
+          continue;
+        }
+        additionalModuleRuntimeRequirements.call(module, set, context);
+
+        for (const r of set) {
+          const hook = runtimeRequirementInModule.get(r);
+          if (hook !== undefined) hook.call(module, set, context);
+        }
+        if (set.size === 0) {
+          if (memCache) {
+            memCache.set(
+              `moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
+              null
+            );
+          }
+        } else {
+          if (memCache) {
+            memCache.set(
+              `moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
+              set
+            );
+            chunkGraph.addModuleRuntimeRequirements(
+              module,
+              runtime,
+              set,
+              false
+            );
+          } else {
+            chunkGraph.addModuleRuntimeRequirements(module, runtime, set);
+          }
+        }
+      }
+    }
 ```
 
 This hook is essential for extending Webpack's runtime behavior for specific modules, ensuring that all necessary runtime features are included.
 
+
 ### `compilation.hooks.runtimeRequirementInModule`
 
 #### What it is:
-`compilation.hooks.runtimeRequirementInModule` is a [HookMap](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C20-76%2C20) of [SyncBailHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C28-76%2C28) hooks in the Webpack compilation process. It allows you to add custom runtime requirements for specific modules during the compilation.
+`compilation.hooks.runtimeRequirementInModule` is a [HookMap](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L76) of [SyncBailHook](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L76) hooks in the Webpack compilation process. It allows you to add custom runtime requirements for specific modules during the compilation.
 
 #### How it works:
-1. **HookMap Initialization**: The `runtimeRequirementInModule` is initialized as a [HookMap](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C20-76%2C20) of [SyncBailHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C28-76%2C28) hooks.
-2. **Tapping into the Hook**: You can tap into the hook for a specific runtime requirement by using the [for](file:///Volumes/sandisk/lulu_dev/webpack/lib/runtime/EnsureChunkRuntimeModule.js#38%2C36-38%2C36) method of the [HookMap](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C20-76%2C20).
+1. **HookMap Initialization**: The `runtimeRequirementInModule` is initialized as a [HookMap](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L76) of [SyncBailHook](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L76) hooks.
+2. **Tapping into the Hook**: You can tap into the hook for a specific runtime requirement by using the [for](https://github.com/webpack/webpack/blob/main/lib/runtime/EnsureChunkRuntimeModule.js#L38) method of the [HookMap](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L76).
 3. **Callback Execution**: The callback you provide will be executed with the module, the set of runtime requirements, and the context as arguments.
 
 #### What it's for:
@@ -3503,106 +3373,107 @@ The relevant code for `runtimeRequirementInModule` can be found in the `Compilat
 
 ```typescript
 73:80:types/Compilation.d.ts
-        /** @type {SyncHook<[Chunk, Set<string>, RuntimeRequirementsContext]>} */
-        additionalChunkRuntimeRequirements: SyncHook<[Chunk, Set<string>, RuntimeRequirementsContext]>;
-        /** @type {HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], void>>} */
-        runtimeRequirementInChunk: HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], void>>;
-        /** @type {SyncHook<[Module, Set<string>, RuntimeRequirementsContext]>} */
-        additionalModuleRuntimeRequirements: SyncHook<[Module, Set<string>, RuntimeRequirementsContext]>;
-        /** @type {HookMap<SyncBailHook<[Module, Set<string>, RuntimeRequirementsContext]>>} */
-        runtimeRequirementInModule: HookMap<SyncBailHook<[Module, Set<string>, RuntimeRequirementsContext], any, import("tapable").UnsetAdditionalOptions>>;
+/** @type {SyncHook<[Chunk, Set<string>, RuntimeRequirementsContext]>} */
+additionalChunkRuntimeRequirements: SyncHook<[Chunk, Set<string>, RuntimeRequirementsContext]>;
+/** @type {HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], void>>} */
+runtimeRequirementInChunk: HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], void>>;
+/** @type {SyncHook<[Module, Set<string>, RuntimeRequirementsContext]>} */
+additionalModuleRuntimeRequirements: SyncHook<[Module, Set<string>, RuntimeRequirementsContext]>;
+/** @type {HookMap<SyncBailHook<[Module, Set<string>, RuntimeRequirementsContext]>>} */
+runtimeRequirementInModule: HookMap<SyncBailHook<[Module, Set<string>, RuntimeRequirementsContext], any, import("tapable").UnsetAdditionalOptions>>;
 ```
 
 And its usage within the `processRuntimeRequirements` method:
 
 ```javascript
 3526:3605:lib/Compilation.js
-	processRuntimeRequirements({
-		chunkGraph = this.chunkGraph,
-		modules = this.modules,
-		chunks = this.chunks,
-		codeGenerationResults = this.codeGenerationResults,
-		chunkGraphEntries = this._getChunkGraphEntries()
-	} = {}) {
-		const context = { chunkGraph, codeGenerationResults };
-		const { moduleMemCaches2 } = this;
-		this.logger.time("runtime requirements.modules");
-		const additionalModuleRuntimeRequirements =
-			this.hooks.additionalModuleRuntimeRequirements;
-		const runtimeRequirementInModule = this.hooks.runtimeRequirementInModule;
-		for (const module of modules) {
-			if (chunkGraph.getNumberOfModuleChunks(module) > 0) {
-				const memCache = moduleMemCaches2 && moduleMemCaches2.get(module);
-				for (const runtime of chunkGraph.getModuleRuntimes(module)) {
-					if (memCache) {
-						const cached = memCache.get(
-							`moduleRuntimeRequirements-${getRuntimeKey(runtime)}`
-						);
-						if (cached !== undefined) {
-							if (cached !== null) {
-								chunkGraph.addModuleRuntimeRequirements(
-									module,
-									runtime,
-									cached,
-									false
-								);
-							}
-							continue;
-						}
-					}
-					let set;
-					const runtimeRequirements =
-						codeGenerationResults.getRuntimeRequirements(module, runtime);
-					if (runtimeRequirements && runtimeRequirements.size > 0) {
-						set = new Set(runtimeRequirements);
-					} else if (additionalModuleRuntimeRequirements.isUsed()) {
-						set = new Set();
-					} else {
-						if (memCache) {
-							memCache.set(
-								`moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
-								null
-							);
-						}
-						continue;
-					}
-					additionalModuleRuntimeRequirements.call(module, set, context);
+processRuntimeRequirements({
+  chunkGraph = this.chunkGraph,
+  modules = this.modules,
+  chunks = this.chunks,
+  codeGenerationResults = this.codeGenerationResults,
+  chunkGraphEntries = this._getChunkGraphEntries()
+} = {}) {
+  const context = { chunkGraph, codeGenerationResults };
+  const { moduleMemCaches2 } = this;
+  this.logger.time("runtime requirements.modules");
+  const additionalModuleRuntimeRequirements =
+    this.hooks.additionalModuleRuntimeRequirements;
+  const runtimeRequirementInModule = this.hooks.runtimeRequirementInModule;
+  for (const module of modules) {
+    if (chunkGraph.getNumberOfModuleChunks(module) > 0) {
+      const memCache = moduleMemCaches2 && moduleMemCaches2.get(module);
+      for (const runtime of chunkGraph.getModuleRuntimes(module)) {
+        if (memCache) {
+          const cached = memCache.get(
+            `moduleRuntimeRequirements-${getRuntimeKey(runtime)}`
+          );
+          if (cached !== undefined) {
+            if (cached !== null) {
+              chunkGraph.addModuleRuntimeRequirements(
+                module,
+                runtime,
+                cached,
+                false
+              );
+            }
+            continue;
+          }
+        }
+        let set;
+        const runtimeRequirements =
+          codeGenerationResults.getRuntimeRequirements(module, runtime);
+        if (runtimeRequirements && runtimeRequirements.size > 0) {
+          set = new Set(runtimeRequirements);
+        } else if (additionalModuleRuntimeRequirements.isUsed()) {
+          set = new Set();
+        } else {
+          if (memCache) {
+            memCache.set(
+              `moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
+              null
+            );
+          }
+          continue;
+        }
+        additionalModuleRuntimeRequirements.call(module, set, context);
 
-					for (const r of set) {
-						const hook = runtimeRequirementInModule.get(r);
-						if (hook !== undefined) hook.call(module, set, context);
-					}
-					if (set.size === 0) {
-						if (memCache) {
-							memCache.set(
-								`moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
-								null
-							);
-						}
-					} else {
-						if (memCache) {
-							memCache.set(
-								`moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
-								set
-							);
-							chunkGraph.addModuleRuntimeRequirements(
-								module,
-								runtime,
-								set,
-								false
-							);
-						} else {
-							chunkGraph.addModuleRuntimeRequirements(module, runtime, set);
-						}
-					}
-				}
-			}
+        for (const r of set) {
+          const hook = runtimeRequirementInModule.get(r);
+          if (hook !== undefined) hook.call(module, set, context);
+        }
+        if (set.size === 0) {
+          if (memCache) {
+            memCache.set(
+              `moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
+              null
+            );
+          }
+        } else {
+          if (memCache) {
+            memCache.set(
+              `moduleRuntimeRequirements-${getRuntimeKey(runtime)}`,
+              set
+            );
+            chunkGraph.addModuleRuntimeRequirements(
+              module,
+              runtime,
+              set,
+              false
+            );
+          } else {
+            chunkGraph.addModuleRuntimeRequirements(module, runtime, set);
+          }
+        }
+      }
+    }
+  }
 ```
 
 ### `compilation.hooks.additionalTreeRuntimeRequirements`
 
 #### What it is:
-`compilation.hooks.additionalTreeRuntimeRequirements` is a [SyncHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#74%2C20-74%2C20) provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1774%2C21-1774%2C21) class. This hook allows you to add additional runtime requirements to a chunk tree during the compilation process.
+`compilation.hooks.additionalTreeRuntimeRequirements` is a [SyncHook](https://github.com/webpack/webpack/blob/main/types/Compilation.d.ts#L74) provided by the Webpack [Compilation](https://github.com/webpack/webpack/blob/main/types.d.ts#L1774) class. This hook allows you to add additional runtime requirements to a chunk tree during the compilation process.
 
 #### How to use it:
 You can tap into this hook to add custom runtime requirements for a chunk tree. This is useful when you need to ensure that certain runtime features are included in the final output.
@@ -3674,110 +3545,6 @@ for (const treeEntry of chunkGraphEntries) {
 }
 ```
 
-### `compilation.hooks.runtimeRequirementInTree`
-
-#### What it is:
-`compilation.hooks.runtimeRequirementInTree` is a [HookMap](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C20-76%2C20) of [SyncBailHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C28-76%2C28) hooks provided by the Webpack [Compilation](file:///Volumes/sandisk/lulu_dev/webpack/types.d.ts#1774%2C21-1774%2C21) class. This hook allows you to handle runtime requirements for chunks within the compilation tree. It lets you add or modify runtime requirements for specific chunks during the compilation process.
-
-#### How to use it:
-To use `compilation.hooks.runtimeRequirementInTree`, you need to tap into the hook for a specific runtime requirement. This is typically done within a Webpack plugin using the [tap](file:///Volumes/sandisk/lulu_dev/webpack/lib/RuntimePlugin.js#187%2C6-187%2C6) method.
-
-#### How it works:
-1. **HookMap Initialization**: `runtimeRequirementInTree` is initialized as a [HookMap](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C20-76%2C20) of [SyncBailHook](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C28-76%2C28) hooks.
-2. **Tapping into the Hook**: Use the `for` method of the [HookMap](file:///Volumes/sandisk/lulu_dev/webpack/types/Compilation.d.ts#76%2C20-76%2C20) to tap into the hook for a specific runtime requirement.
-3. **Callback Execution**: The callback you provide is executed with the chunk, the set of runtime requirements, and the context as arguments.
-
-#### What it's for:
-The `runtimeRequirementInTree` hook is used to manage and customize runtime requirements for chunks within the Webpack compilation tree. This is useful for adding custom runtime modules or modifying existing ones based on specific conditions.
-
-#### Parameters:
-- **chunk**: The chunk for which the runtime requirement is being processed.
-- **set**: A set of runtime requirements for the chunk.
-- **context**: The context object containing the chunk graph and code generation results.
-
-#### Example:
-Here is an example of how to use `compilation.hooks.runtimeRequirementInTree` in a Webpack plugin:
-
-```javascript
-class MyPlugin {
-  apply(compiler) {
-    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
-      compilation.hooks.runtimeRequirementInTree
-        .for('myRuntimeRequirement')
-        .tap('MyPlugin', (chunk, set, context) => {
-          // Add your custom runtime requirement logic here
-          set.add('myCustomRuntimeRequirement');
-          return true;
-        });
-    });
-  }
-}
-
-module.exports = MyPlugin;
-```
-
-#### Relevant Code:
-The `runtimeRequirementInTree` hook is defined in the `Compilation` class:
-
-```typescript
-83:84:types/Compilation.d.ts
-/** @type {HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext]>> } */
-runtimeRequirementInTree: HookMap<SyncBailHook<[Chunk, Set<string>, RuntimeRequirementsContext], any, import("tapable").UnsetAdditionalOptions>>;
-```
-
-It is used in the `processRuntimeRequirements` method of the `Compilation` class:
-
-```javascript
-3644:3646:lib/Compilation.js
-this.hooks.runtimeRequirementInTree
-  .for(r)
-  .call(treeEntry, set, context);
-```
-
-### Example from Webpack Codebase
-Here is an example from the `RuntimePlugin`:
-
-```javascript
-193:227:lib/RuntimePlugin.js
-compilation.hooks.runtimeRequirementInTree
-  .for(RuntimeGlobals.runtimeId)
-  .tap("RuntimePlugin", chunk => {
-    compilation.addRuntimeModule(chunk, new RuntimeIdRuntimeModule());
-    return true;
-  });
-
-compilation.hooks.runtimeRequirementInTree
-  .for(RuntimeGlobals.publicPath)
-  .tap("RuntimePlugin", (chunk, set) => {
-    const { outputOptions } = compilation;
-    const { publicPath: globalPublicPath, scriptType } = outputOptions;
-    const entryOptions = chunk.getEntryOptions();
-    const publicPath =
-      entryOptions && entryOptions.publicPath !== undefined
-        ? entryOptions.publicPath
-        : globalPublicPath;
-
-    if (publicPath === "auto") {
-      const module = new AutoPublicPathRuntimeModule();
-      if (scriptType !== "module") set.add(RuntimeGlobals.global);
-      compilation.addRuntimeModule(chunk, module);
-    } else {
-      const module = new PublicPathRuntimeModule(publicPath);
-
-      if (
-        typeof publicPath !== "string" ||
-        /\[(full)?hash\]/.test(publicPath)
-      ) {
-        module.fullHash = true;
-      }
-
-      compilation.addRuntimeModule(chunk, module);
-    }
-    return true;
-  });
-```
-
-In this example, the `runtimeRequirementInTree` hook is tapped for various runtime requirements like `RuntimeGlobals.runtimeId` and `RuntimeGlobals.publicPath`. Custom runtime modules are added to the chunk based on these requirements.
 
 ### `compilation.hooks.runtimeModule`
 
